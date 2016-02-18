@@ -20,8 +20,8 @@ list all dynamic_debug enabled items
 这样就能打开所有的dynmaic_debug items，对于Linux kernel source tree里的代码，dynamic_debug是适用的，但自己写的LKM似乎用不了这个机制，于是花了些时间想一探究竟。
 
 来看下pr_debug或者dev_dbg的定义:
+/include/linux/printk.h 
 {% highlight c linenos %}
-/include/linux/printk.h lang:c
 /* If you are writing a driver, please use dev_dbg instead */
 #if defined(DEBUG)
 #define pr_debug(fmt, ...) \

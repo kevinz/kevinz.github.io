@@ -14,7 +14,7 @@ baseurl: "" # the subpath of your site, e.g. /blog
 url: "http://gekben.gitcd.com/" # the base hostname & protocol for your site
 twitter_username: kevin_zz 
 github_username: kevinz 
-highlighter: rouge
+highlighter: pygments  
 
 # Build settings
 markdown: kramdown
