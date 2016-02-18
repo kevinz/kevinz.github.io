@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>在archlinux里定制编译内核</title>
+  <meta name="description" content="心血来潮升级到linux-ck_3.4.4-4后，发现pm-suspend出问题了，可以suspend，但resume后显示屏亮不起来，其它部分都resume成功了，可以隐约看见一些窗口的黑影。于是我又开始折腾了，参考了这篇，插句题外话，不知道不是巧合，好多问题都是在archlinux的相关论坛上找到了答案，都是...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://gekben.gitcd.com//linux/arch/kernel/2012/07/14/customize-kernel-in-arch-linux.html">
+  <link rel="alternate" type="application/rss+xml" title="技术学习日志" href="http://gekben.gitcd.com//feed.xml">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/">技术学习日志</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">在archlinux里定制编译内核</h1>
+    <p class="post-meta"><time datetime="2012-07-14T16:54:00+08:00" itemprop="datePublished">Jul 14, 2012</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <p>心血来潮升级到
+<a href="http://repo-ck.com/x86_64/linux-ck-corex-3.4.4-4-x86_64.pkg.tar.xz">linux-ck_3.4.4-4</a>
+后，发现<code class="highlighter-rouge">pm-suspend</code>出问题了，可以<code class="highlighter-rouge">suspend</code>，但<code class="highlighter-rouge">resume</code>后显示屏亮不起
+来，其它部分都<code class="highlighter-rouge">resume</code>成功了，可以隐约看见一些窗口的黑影。于是我又开始
+折腾了，参考了
+<a href="https://bbs.archlinux.org/viewtopic.php?id=143545">这篇</a>，插句题外话，
+不知道不是巧合，好多问题都是在archlinux的相关论坛上找到了答案，都是一帮爱折腾的同好。</p>
+
+<p>不幸的是，<a href="https://bbs.archlinux.org/viewtopic.php?id=143545">这篇</a>把
+我引导向了错误的方向，决定把kernel降级到3.3.x。因为我用的不是官核，不
+好找old archive，必须重新编译3.3.x-ck的内核，官方的old archives可以在
+<a href="http://arm.konnichi.com/search/">这里</a>寻觅到。</p>
+
+<p>拜<a href="https://wiki.archlinux.org/index.php/Arch_Build_System">Arch Build System</a>
+所赐，编译、打包、patch的步骤都可以内置了，对于kernel也是一样。贴一部
+分PKGBUILD文件的内容，是从
+<a href="http://repo-ck.com/PKG_source/linux-ck/linux-ck-3.3.8-1.src.tar.gz">repo-ck的archive</a>
+里找到的。
+<!-- more -->
+```
+### PATCH AND BUILD OPTIONS
+<em>makenconfig=”n”	# tweak kernel options prior to a build via nconfig
+_localmodcfg=”n”	# compile ONLY probed modules
+_use_current=”n”	# use the current kernel’s .config file
+_BFQ_enable</em>=”n”	# enable BFQ as the default I/O scheduler</p>
+
+<p>pkgname=linux-ck
+true &amp;&amp; pkgname=(linux-ck linux-ck-headers)
+_kernelname=-ck
+_basekernel=3.3
+pkgver=${_basekernel}.8
+pkgrel=1
+arch=(‘i686’ ‘x86_64’)
+url=”https://wiki.archlinux.org/index.php/Linux-ck”
+license=(‘GPL2’)
+options=(‘!strip’)
+_ckpatchversion=1
+_ckpatchname=”patch-${_basekernel}-ck${_ckpatchversion}”
+_bfqpath=”http://algo.ing.unimo.it/people/paolo/disk_sched/patches/3.3.0-v3r3”
+source=(“http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.3.tar.xz”
+“http://www.kernel.org/pub/linux/kernel/v3.x/patch-${pkgver}.xz”
+“http://ck.kolivas.org/patches/3.0/3.3/${_basekernel}-ck${_ckpatchversion}/${_ckpatchname}.bz2”
+‘linux-ck.preset’
+‘config’ ‘config.x86_64’
+‘change-default-console-loglevel.patch’
+‘i915-fix-ghost-tv-output.patch’
+‘ext4-options.patch’
+‘fix-acerhdf-1810T-bios.patch’
+“${_bfqpath}/0001-block-cgroups-kconfig-build-bits-for-BFQ-v3r3-3.3.patch”
+“${_bfqpath}/0002-block-introduce-the-BFQ-v3r3-I-O-sched-for-3.3.patch”)
+sha256sums=(‘355df2085626cdf0083c4bc0fe3017419034b6db5cce6f437ae8234a5e90b40c’
+            ‘4bbd173c995f44cb1bc5b002293765e8d8f9f076ae801f35cf456da9f0eba06d’
+            ‘dd23a8e0fc6cdb393a9659d5d097c27e1ff5a0f30d0fe6a3441512a9bf6d00cb’
+            ‘c2cf8cc2600502de348f3dc3aae9a3bde5486759db15cb8a93df7aa35bd6e7da’
+            ‘253b11d36850a9c06ad8861a339da8895ddbb875d4e61579447a26f13423a160’
+            ‘0f6def8badb9939ddb042657fd767c3a07ea7c291ed795935ebc8f81255231d7’
+            ‘b9d79ca33b0b51ff4f6976b7cd6dbb0b624ebf4fbf440222217f8ffc50445de4’
+            ‘9ccadbe3eb30bb283af3eb869c3a4bdb764628854811cc616a2e02e9ef398705’
+            ‘0f15e7462b5d2650c354580920978228b3092bcf47e20e600242c8ca102df6f5’
+            ‘f77e1a1f2d955f0499dc2957d1d65a3eb931212a13948b33916332296d0e4a7a’
+            ‘179e159deaaa3976f5e5e329a640050b9803fef3cc77f8588a949b28c732c5ad’
+            ‘a401732b5bc36eeccbaab86b216295d0ce0b30b8afdae66d8f59a382689da6a4’)
+build() {
+	cd “${srcdir}/linux-${_basekernel}”</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>msg "Patching with upstream patch ${_basekernel} to ${_basekernel}.4"
+# add upstream patch
+#patch -p1 -i "${srcdir}/patch-${pkgver}"
+
+# add latest fixes from stable queue, if needed
+#http://git.kernel.org/?p=linux/kernel/git/stable/stable-queue.git
+
+### Patch with BFQ IO Scheduler
+msg "Patching source with BFQ patches"
+#for p in $(ls ${srcdir}/000{1,2}-block*.patch); do
+#	patch -Np1 -i $p
+#done
+
+### Clean tree and copy ARCH config over
+msg "Running make mrproper to clean source tree"
+make mrproper
+
+if [ "${CARCH}" = "x86_64" ]; then
+	cat "${srcdir}/config.x86_64" &gt; ./.config
+else
+	cat "${srcdir}/config" &gt; ./.config
+fi
+
+### Optionally use running kernel's config
+# code originally by nous; http://aur.archlinux.org/packages.php?ID=40191
+if [ $_use_current = "y" ]; then
+	if [[ -s /proc/config.gz ]]; then
+		msg "Extracting config from /proc/config.gz..."
+		# modprobe configs
+		zcat /proc/config.gz &gt; ./.config
+	else
+		warning "You kernel was not compiled with IKCONFIG_PROC!"
+		warning "You cannot read the current config!"
+		warning "Aborting!"
+		exit
+	fi
+fi
+
+if [ "${_kernelname}" != "" ]; then
+	sed -i "s|CONFIG_LOCALVERSION=.*|CONFIG_LOCALVERSION=\"${_kernelname}\"|g" ./.config
+fi
+
+### BFQ to be compiled in but not enabled
+sed -i -e s'/CONFIG_CFQ_GROUP_IOSCHED=y/CONFIG_CFQ_GROUP_IOSCHED=y\nCONFIG_IOSCHED_BFQ=y\nCONFIG_CGROUP_BFQIO=y/' \
+	-i -e s'/CONFIG_DEFAULT_CFQ=y/CONFIG_DEFAULT_CFQ=y\n# CONFIG_DEFAULT_BFQ is not set/' ./.config
+
+### Optionally enable BFQ as the default io scheduler
+if [ $_BFQ_enable_ = "y" ]; then
+	sed -i -e '/CONFIG_DEFAULT_IOSCHED/ s,cfq,bfq,' \
+		-i -e s'/CONFIG_DEFAULT_CFQ=y/# CONFIG_DEFAULT_CFQ is not set\nCONFIG_DEFAULT_BFQ=y/' ./.config
+fi
+
+# set extraversion to pkgrel
+sed -ri "s|^(EXTRAVERSION =).*|\1 -${pkgrel}|" Makefile
+
+# get kernel version
+msg "Running make prepare for you to enable patched options of your choosing"
+make prepare
+
+### Optionally load needed modules for the make localmodconfig
+# See http://aur.archlinux.org/packages.php?ID=41689
+if [ $_localmodcfg = "y" ]; then
+	msg "If you have modprobe_db installed, running it in recall mode now"
+	if [ -e /usr/bin/modprobed_db ]; then
+		[[ ! -x /usr/bin/sudo ]] &amp;&amp; echo "Cannot call modprobe with sudo.  Install via pacman -S sudo and configure to work with this user." &amp;&amp; exit 1
+		sudo /usr/bin/modprobed_db recall
+	fi
+	msg "Running Steven Rostedt's make localmodconfig now"
+	make localmodconfig
+fi
+
+if [ $_makenconfig = "y" ]; then
+	msg "Running make nconfig"
+	make nconfig
+fi
+
+msg "Running make bzImage and modules"
+make ${MAKEFLAGS} bzImage modules }
+</code></pre>
+</div>
+
+<p>package_linux-ck() {
+…
+```</p>
+
+<p>比较长，但也很易读懂，验证资源文件，解压资源文件，打patch，获取config，最后<code class="highlighter-rouge">make
+bzImage modules</code>，可以在<code class="highlighter-rouge">export MAKEFLAGS="-j4"</code>，充分利用多核cpu加快
+编译。读上面的配置文件可以知道，对于32/64的系统，已经提供了默认的
+config文件，可以直接修改config，或者以<code class="highlighter-rouge">make menuconfig</code>的方式，这里有
+个小技巧：
+获取依赖的资源并解压 
+<code class="highlighter-rouge">
+$tar -xzvf linux-ck-3.3.8-1.src.tar.gz
+$cd linux-ck
+$makepkg -s
+</code>
+ABS会自动按照PKGBUILD的步骤开始执行，可以在编译真正开始时，终止其执行，
+可以在linux-ck目录下，发现src目录，所有patch，kernel源代码都放在这里了，
+进入kernel源码目录，<code class="highlighter-rouge">make menuconfig</code>就可以对默认的config进行定制修改
+了，具体步骤就不赘述了，大家慢慢体会，要注意的是，改了config文件后，记
+得把PKGBUILD里相应文件的shasum也更新了。</p>
+
+<p>用这种方法编译出来的kernel，是以<code class="highlighter-rouge">.xz</code> package的形式存在，就跟在
+<code class="highlighter-rouge">/var/cache/pacman/pkg/</code>下的官方package一样，可以很好管理、跟踪。</p>
+
+<p>最后解决休眠恢复的问题的方法，是降级成nvidia-295.53-2的驱动解决的，可以用在
+最新的3.4.4-4-ck内核上，确实是驱动的问题，期间换用nouveau的开源驱动也
+有同样问题。再之后，升级到更新的nvidia-ck驱动，就没问题了，没有以后了。</p>
+
+  </div>
+
+</article>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">技术学习日志</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>技术学习日志</li>
+          <li><a href="mailto:46953294@qq.com">46953294@qq.com</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/kevinz"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">kevinz</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/kevin_zz"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">kevin_zz</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>就是看下能坚持写多久，已经过了吹牛的年纪
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>
