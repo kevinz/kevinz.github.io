@@ -9,18 +9,18 @@ keywords: "config_dynamic_debug, kernel debug, kernel printk"
 ---
 最近在为自己写的LKM添加调试功能时，发现了一个比printk更好的选择，就是[dynamic debugging](http://lwn.net/Articles/434833/)。
 
-```bash
+{% highlight bash %}
 list all dynamic_debug enabled items
 #mkdir /debug
 #mount -t debugfs debugfs /debug
 // 看下哪些地方使用了dynamic_debug机制
 #cat /debug/dynamic_debug/control
 #echo ' +p' > /sys/kernel/debug/dynamic_debug/control
-```
+{% endhighlight %}
 这样就能打开所有的dynmaic_debug items，对于Linux kernel source tree里的代码，dynamic_debug是适用的，但自己写的LKM似乎用不了这个机制，于是花了些时间想一探究竟。
 
 来看下pr_debug或者dev_dbg的定义:
-{% highlight c %}
+{% highlight c linenos %}
 /include/linux/printk.h lang:c
 /* If you are writing a driver, please use dev_dbg instead */
 #if defined(DEBUG)
